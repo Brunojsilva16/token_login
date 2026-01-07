@@ -1,0 +1,361 @@
+<?php 
+// app/views/pages/editar_token.phtml 
+
+$origem = $token['origem'] ?? 'Sistema';
+$telefone = $token['telefone'] ?? '';
+$cpf = $token['cpf'] ?? '';
+$respFin = $token['responsavel_f'] ?? $token['responsavel_financeiro'] ?? '';
+?>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-gray-800">Editar Token</h2>
+        <a href="<?= URL_BASE ?>/home" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i> Voltar
+        </a>
+    </div>
+
+    <form action="<?= URL_BASE ?>/token/atualizar" method="POST" autocomplete="off">
+        <input type="hidden" name="id_token" value="<?= $token['id_token'] ?>">
+        
+        <!-- CAMPO HIDDEN PARA O ID DO PACIENTE -->
+        <input type="hidden" name="hiddenInputId" id="id_paciente" value="<?= $token['id_paciente'] ?? '' ?>">
+        
+        <!-- CAMPO HIDDEN PARA ORIGEM (Mantém o valor para envio) -->
+        <input type="hidden" name="origem" id="hiddenOrigem" value="<?= htmlspecialchars($origem) ?>">
+
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 fw-bold text-primary">Dados do Token #<?= $token['id_token'] ?></h6>
+            </div>
+            <div class="card-body">
+                
+                <!-- 1. Identificação -->
+                <h6 class="text-primary fw-bold mb-3 border-bottom pb-2">1. Identificação</h6>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Profissional <span class="text-danger">*</span></label>
+                        <select class="form-select" name="id_prof" required>
+                            <?php foreach($profissionais as $p): ?>
+                                <option value="<?= $p['id'] ?>" <?= ($token['id_prof'] == $p['id']) ? 'selected' : '' ?>>
+                                    <?= $p['nome'] ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    
+                    <!-- CAMPO DE BUSCA DE PACIENTE -->
+                    <div class="col-md-6 mb-3 position-relative">
+                        <label class="form-label fw-bold">Paciente</label>
+                        <input type="text" class="form-control" name="nome_paciente" id="inputBusca" 
+                               value="<?= $token['paciente'] ?>" placeholder="Digite o nome para buscar..." required autocomplete="off">
+                        
+                        <!-- Elementos para autocomplete -->
+                        <small id="statusBusca" class="form-text text-muted"></small>
+                        <div id="listaSugestoes" class="list-group position-absolute w-100 shadow" style="z-index: 1000; display:none;"></div>
+                        
+                        <small class="text-muted" style="font-size: 0.75rem;">* Ao alterar o nome manualmente sem selecionar da lista, o vínculo com o cadastro será removido.</small>
+                    </div>
+                </div>
+
+                <!-- NOVA SEÇÃO: Origem do Paciente -->
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="p-3 bg-light rounded border">
+                            <label class="form-label d-block fw-bold text-muted small text-uppercase mb-2">Origem do Paciente</label>
+                            <div class="d-flex align-items-center">
+                                <div class="form-check form-check-inline me-4">
+                                    <input class="form-check-input" type="radio" name="origem_visual" value="Organico" id="origem_organico" disabled 
+                                           <?= ($origem == 'Organico') ? 'checked' : '' ?>>
+                                    <label class="form-check-label" for="origem_organico">
+                                        <i class="fas fa-leaf text-success me-1"></i> Orgânico
+                                    </label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="origem_visual" value="Marketing" id="origem_marketing" disabled 
+                                           <?= ($origem == 'Marketing') ? 'checked' : '' ?>>
+                                    <label class="form-check-label" for="origem_marketing">
+                                        <i class="fas fa-bullhorn text-info me-1"></i> Marketing
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">CPF</label>
+                        <input type="text" class="form-control" name="cpf_paciente" id="displayCpf" value="<?= $cpf ?>">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Telefone</label>
+                        <input type="text" class="form-control" name="telefone_paciente" id="displayTelefone" value="<?= $telefone ?>">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Nome Responsável</label>
+                        <input type="text" class="form-control" name="nome_responsavel" id="displayResponsavel" value="<?= $token['nome_resp'] ?? '' ?>">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Resp. Financeiro</label>
+                        <input type="text" class="form-control" name="responsavel_financeiro" id="displayFinanceiro" value="<?= $respFin ?>">
+                    </div>
+                </div>
+
+                <!-- 2. Pagamento -->
+                <h6 class="text-primary fw-bold mb-3 mt-4 border-bottom pb-2">2. Pagamento</h6>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">Forma de Pagamento</label>
+                        <select class="form-select" name="formapag" required>
+                            <?php 
+                                $formas = ['Crédito', 'Débito', 'Espécie', 'Pix', 'Pix / Qrcode'];
+                                foreach($formas as $f): 
+                            ?>
+                                <option value="<?= $f ?>" <?= ($token['formapag'] == $f) ? 'selected' : '' ?>><?= $f ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">Banco</label>
+                        <select class="form-select" name="nome_banco">
+                            <option value="">Selecione...</option>
+                            <?php 
+                                $bancos = ['Itau' => 'Banco Itau', 'Bradesco' => 'Banco Bradesco'];
+                                foreach($bancos as $valor => $rotulo): 
+                                    $selected = ($token['nome_banco'] == $valor) ? 'selected' : '';
+                            ?>
+                                <option value="<?= $valor ?>" <?= $selected ?>><?= $rotulo ?></option>
+                            <?php endforeach; ?>
+                            <?php if (!empty($token['nome_banco']) && !array_key_exists($token['nome_banco'], $bancos)): ?>
+                                <option value="<?= $token['nome_banco'] ?>" selected><?= $token['nome_banco'] ?></option>
+                            <?php endif; ?>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">Modalidade</label>
+                        <select class="form-select" name="modalidade">
+                            <option value="">Selecione...</option>
+                            <?php 
+                                $modalidades = [
+                                    'Avaliação T' => 'Avaliação Terapia (Psicologia / Terapia Casal / TO)',
+                                    'Avaliação F' => 'Avaliação Fono',
+                                    'Avaliação N' => 'Avaliação Neuropsicológica',
+                                    'Visita E' => 'Visita Escolar',
+                                    'Proase' => 'Proase',
+                                    'Plano Mensal' => 'Plano Mensal',
+                                    'Consulta Psiquiatra' => 'Consulta Psiquiatra',
+                                    'Consulta Nutrição' => 'Consulta Nutrição'
+                                ];
+                                foreach($modalidades as $valor => $rotulo): 
+                                    $selected = ($token['modalidade'] == $valor) ? 'selected' : '';
+                            ?>
+                                <option value="<?= $valor ?>" <?= $selected ?>><?= $rotulo ?></option>
+                            <?php endforeach; ?>
+                            <?php if (!empty($token['modalidade']) && !array_key_exists($token['modalidade'], $modalidades)): ?>
+                                <option value="<?= $token['modalidade'] ?>" selected><?= $token['modalidade'] ?></option>
+                            <?php endif; ?>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row align-items-end bg-light p-2 rounded">
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label fw-bold text-success">Valor (R$)</label>
+                        <input type="text" class="form-control fw-bold border-success" name="valor" id="valor" 
+                               value="<?= number_format($token['valor'] ?? 0, 2, ',', '.') ?>" required>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label fw-bold">Vencimento</label>
+                        <input type="date" class="form-control" name="vencimento" 
+                               value="<?= $token['vencimento'] ?? '' ?>">
+                    </div>
+                </div>
+
+                <!-- 3. Sessões -->
+                <h6 class="text-primary fw-bold mb-3 mt-4 border-bottom pb-2">3. Sessões / Agendamentos</h6>
+                
+                <div id="container_sessoes">
+                    <?php if (isset($sessoes) && count($sessoes) > 0): ?>
+                        <?php foreach($sessoes as $idx => $sessao): ?>
+                            <div class="row mb-2 sessao-item align-items-end">
+                                <div class="col-md-4">
+                                    <label class="small text-muted">Data da Sessão</label>
+                                    <input type="date" name="sessoes[<?= $idx ?>][data]" class="form-control" value="<?= $sessao['data_sessao'] ?>" required>
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="small text-muted d-block">&nbsp;</label>
+                                    <button type="button" class="btn btn-outline-danger btn-sm w-100 btn-remove-sessao" tabindex="-1">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+
+                <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="btn_add_sessao">
+                    <i class="fas fa-plus me-1"></i> Adicionar Sessão
+                </button>
+
+            </div>
+            <div class="card-footer text-end">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-save me-1"></i> Salvar Alterações
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    // --- Elementos DOM ---
+    const inputBusca = document.getElementById('inputBusca');
+    const listaSugestoes = document.getElementById('listaSugestoes');
+    const hiddenInputId = document.getElementById('id_paciente');
+    const statusBusca = document.getElementById('statusBusca');
+    const hiddenOrigem = document.getElementById('hiddenOrigem');
+
+    // Elementos de Exibição
+    const displayCpf = document.getElementById('displayCpf');
+    const displayTelefone = document.getElementById('displayTelefone');
+    const displayResponsavel = document.getElementById('displayResponsavel');
+    const displayFinanceiro = document.getElementById('displayFinanceiro');
+
+    // Radios de Origem
+    const radioOrganico = document.getElementById('origem_organico');
+    const radioMarketing = document.getElementById('origem_marketing');
+
+    // --- Lógica de Autocomplete ---
+    inputBusca.addEventListener('input', function() {
+        hiddenInputId.value = ''; // Limpa ID ao digitar
+        
+        const termo = this.value;
+        if (termo.length < 3) {
+            listaSugestoes.style.display = 'none';
+            return;
+        }
+
+        // CORREÇÃO: URL agora aponta para /api/pacientes/busca e usa o parâmetro 'term'
+        fetch('<?= URL_BASE ?>/api/pacientes/busca?term=' + encodeURIComponent(termo))
+            .then(response => {
+                if (!response.ok) throw new Error('Erro na rede: ' + response.statusText);
+                return response.json();
+            })
+            .then(data => {
+                listaSugestoes.innerHTML = '';
+                if (data.length > 0) {
+                    listaSugestoes.style.display = 'block';
+                    data.forEach(paciente => {
+                        const item = document.createElement('a');
+                        item.classList.add('list-group-item', 'list-group-item-action', 'cursor-pointer');
+                        item.innerHTML = `<strong>${paciente.nome}</strong> <br> <small class="text-muted">CPF: ${paciente.cpf || 'N/A'}</small>`;
+
+                        item.addEventListener('click', function() {
+                            // 1. Preenche dados principais
+                            inputBusca.value = paciente.nome;
+                            
+                            // CORREÇÃO: Confirma se o JSON retorna 'id' (conforme seu controller PatientController::apiSearch)
+                            hiddenInputId.value = paciente.id; 
+
+                            // 2. Preenche campos secundários
+                            displayCpf.value = paciente.cpf || '';
+                            displayTelefone.value = paciente.telefone || '';
+                            displayResponsavel.value = paciente.nome_responsavel || '';
+                            displayFinanceiro.value = paciente.responsavel_financeiro || '';
+
+                            // 3. Lógica de Origem
+                            radioOrganico.checked = false;
+                            radioMarketing.checked = false;
+                            
+                            if (paciente.origem) {
+                                hiddenOrigem.value = paciente.origem;
+                                if (paciente.origem === 'Organico') {
+                                    radioOrganico.checked = true;
+                                } else if (paciente.origem === 'Marketing') {
+                                    radioMarketing.checked = true;
+                                }
+                            } else {
+                                hiddenOrigem.value = 'Sistema';
+                            }
+
+                            // 4. Finaliza
+                            listaSugestoes.style.display = 'none';
+                            statusBusca.innerText = "Paciente vinculado: " + paciente.nome;
+                            statusBusca.className = "text-success fw-bold small";
+                        });
+
+                        listaSugestoes.appendChild(item);
+                    });
+                } else {
+                    listaSugestoes.style.display = 'none';
+                }
+            })
+            .catch(err => {
+                console.error('Erro na busca', err);
+                listaSugestoes.style.display = 'none';
+            });
+    });
+
+    // Fecha lista se clicar fora
+    document.addEventListener('click', function(e) {
+        if (!inputBusca.contains(e.target) && !listaSugestoes.contains(e.target)) {
+            listaSugestoes.style.display = 'none';
+        }
+    });
+
+    // --- Máscara monetária ---
+    const valorInput = document.getElementById('valor');
+    if(valorInput) {
+        valorInput.addEventListener('input', e => {
+            let v = e.target.value.replace(/\D/g, '');
+            v = (v / 100).toFixed(2) + '';
+            v = v.replace(".", ",").replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1.");
+            e.target.value = v;
+        });
+    }
+
+    // --- Lógica de Sessões ---
+    document.addEventListener('DOMContentLoaded', function() {
+        const container = document.getElementById('container_sessoes');
+        const btnAdd = document.getElementById('btn_add_sessao');
+        
+        // Garante que o contador comece depois do último índice existente
+        let contador = <?= isset($sessoes) ? count($sessoes) : 0 ?>;
+
+        if (btnAdd && container) {
+            btnAdd.addEventListener('click', function() {
+                contador++;
+                const div = document.createElement('div');
+                div.className = 'row mb-2 sessao-item align-items-end fade-in';
+                div.innerHTML = `
+                    <div class="col-md-4">
+                        <label class="small text-muted">Data da Sessão</label>
+                        <input type="date" name="sessoes[${contador}][data]" class="form-control" required>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="small text-muted d-block">&nbsp;</label>
+                        <button type="button" class="btn btn-outline-danger btn-sm w-100 btn-remove-sessao" tabindex="-1">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+
+            container.addEventListener('click', function(e) {
+                if (e.target.closest('.btn-remove-sessao')) {
+                    e.target.closest('.sessao-item').remove();
+                }
+            });
+        }
+    });
+</script>
+
+<style>
+    .cursor-pointer { cursor: pointer; }
+    .fade-in { animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+</style>
